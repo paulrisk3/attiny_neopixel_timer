@@ -1,49 +1,36 @@
 #include <Adafruit_NeoPixel.h>
 
-// Digital IO pin connected to the button. This will be driven with a
-// pull-up resistor so the switch pulls the pin to ground momentarily.
-// On a high -> low transition the button press logic will execute.
-#define BUTTON_PIN   2
+#define BUTTON_PIN   2 // Digital IO pin to a pull-up resistor, executes on high-low transition
 #define PIXEL_PIN    3  // Digital IO pin connected to the NeoPixels.
 #define PIXEL_COUNT 12  // Number of NeoPixels
 
-// Declare our NeoPixel strip object:
 Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
-// Argument 1 = Number of pixels in NeoPixel strip
-// Argument 2 = Arduino pin number (most are valid)
-// Argument 3 = Pixel type flags, add together as needed:
 //   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
-//   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
-//   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
-//   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
 
-const int millisPerMinute = 1000;
+const int millisPerMinute = 1000; // 60,000
 const int timerIncrement = 15; // minutes added per button-press
+const int defaultHours = 2; // number of hours before any button presses
 const double maxColorValue = 48; // value between 0-255. Higher is brighter.
-const double colorPerMinute = maxColorValue / 60;
+const double colorPerMinute = maxColorValue / 60; // ratio of how much brightness to lose per minute
 
 boolean oldState = HIGH;
-int timer = 2 * 60; //default 8 hours
+int timer = defaultHours * 60; // timer is in minutes
 
 void setup() {
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   strip.begin();
-  colorWipe(strip.Color(maxColorValue, 0, maxColorValue), 100);
+  colorWipe(strip.Color(maxColorValue, 0, maxColorValue), 50);
 }
 
 void loop() {
   if (timer < 1) {
-    colorChase();
+    greenChase();
   } else {
     setLights(timer);
-    delay(millisPerMinute);
-    timer--;
+    delay(millisPerMinute); // wait one minute
+    timer--; // decrement timer
   }
-  
-//  setLights(timer);
-//  delay(millisPerMinute); // wait one minute
-//  timer--; // decrement timer
   
 //  boolean newState = digitalRead(BUTTON_PIN); // Get current button state.
 //  
@@ -93,7 +80,7 @@ void colorWipe(uint32_t color, int wait) {
   }
 }
 
-void colorChase() { // cycle green around the ring.  
+void greenChase() { // cycle green around the ring.  
   for(int i=0; i<strip.numPixels(); i++) {
     strip.clear();
     
