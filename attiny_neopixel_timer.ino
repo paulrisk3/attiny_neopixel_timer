@@ -10,8 +10,8 @@ Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
 const int millisPerMinute = 1000; // 60,000
 const int timerIncrement = 15; // minutes added per button-press
-const int defaultHours = 2; // number of hours before any button presses
-const double maxColorValue = 48; // value between 0-255. Higher is brighter.
+const int defaultHours = 8; // number of hours before any button presses
+const double maxColorValue = 60; // value between 0-255. Higher is brighter.
 const double colorPerMinute = maxColorValue / 60; // ratio of how much brightness to lose per minute
 
 boolean oldState = HIGH;
