@@ -1,35 +1,49 @@
 #include <Adafruit_NeoPixel.h>
 
-#define BUTTON_PIN   2 // Digital IO pin to a pull-up resistor, executes on high-low transition
+#define BUTTON_PIN   PCINT1 // Digital IO pin to a pull-up resistor, executes on high-low transition
 #define PIXEL_PIN    3  // Digital IO pin connected to the NeoPixels.
 #define PIXEL_COUNT 12  // Number of NeoPixels
+#define INT_PIN PB1
 
 Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 //   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
 
-const int millisPerMinute = 1000; // 60,000
-const int timerIncrement = 15; // minutes added per button-press
+const int millisPerSecond = 1000;
+const int timerIncrement = 15 * 60; // seconds added per button-press
 const int defaultHours = 8; // number of hours before any button presses
 const double maxColorValue = 60; // value between 0-255. Higher is brighter.
-const double colorPerMinute = maxColorValue / 60; // ratio of how much brightness to lose per minute
 
+int timer = defaultHours * 60 * 60; // timer is in seconds
 boolean oldState = HIGH;
-int timer = defaultHours * 60; // timer is in minutes
+unsigned long previousMillis = 0;
 
 void setup() {
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
+//  pinMode(BUTTON_PIN, INPUT_PULLUP);
+
+  cli();                            // Disable interrupts during setup
+  PCMSK |= (1 << BUTTON_PIN);    // Enable interrupt handler (ISR) for our chosen interrupt pin (PCINT1/PB1/pin 6)
+  GIMSK |= (1 << PCIE);             // Enable PCINT interrupt in the general interrupt mask
+  pinMode(INT_PIN, INPUT_PULLUP);   // Set our interrupt pin as input with a pullup to keep it stable
+  sei();                            //last line of setup - enable interrupts after setup
+  
   strip.begin();
   colorWipe(strip.Color(maxColorValue, 0, maxColorValue), 50);
 }
 
 void loop() {
-  if (timer < 1) {
-    greenChase();
-  } else {
-    setLights(timer);
-    delay(millisPerMinute); // wait one minute
-    timer--; // decrement timer
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= millisPerSecond) {
+    previousMillis = currentMillis;
+
+   if (timer < 1) {
+      greenChase();
+    } else {
+      setLights();
+//      delay(millisPerSecond); // wait one second
+      timer--; // decrement timer
+    } 
   }
   
 //  boolean newState = digitalRead(BUTTON_PIN); // Get current button state.
@@ -45,32 +59,32 @@ void loop() {
 //  oldState = newState;
 }
 
-void setLights(int timeLeft) {
+void setLights() {
   strip.clear();
   
   // set one red LED for each hour
-  int numReds = timeLeft / 60;
+  int numReds = timer / 3600;
   for (int i=0; i<numReds; i++) {
     strip.setPixelColor(i, maxColorValue, 0, 0);
   }
 
   // set the dim LED
-  double remainder = timeLeft % 60;
-  double brightnessRatio = remainder / 60;
+  double remainder = timer % 3600;
+  double brightnessRatio = remainder / 3600;
   strip.setPixelColor(numReds, maxColorValue * brightnessRatio, 0, 0); //if numReds == PIXEL_COUNT, this will cause an error. This shouldn't happen, though, because increaseTimer rolls over.
 
   strip.show();
 }
 
-//void increaseTimer() {
-//  timer += timerIncrement;
-//  
-//  if (timer > (PIXEL_COUNT * 60)) {
-//    timer = 0; // roll over timer to 0 LEDs if button is pressed too many times
-//  }
-//  
+void increaseTimer() {
+  timer += timerIncrement;
+  
+  if (timer > (PIXEL_COUNT * 3600)) {
+    timer = 0; // roll over timer to 0 LEDs if button is pressed too many times
+  }
+  
 //  setLights();
-//}
+}
 
 void colorWipe(uint32_t color, int wait) {
   for(int i=0; i<strip.numPixels(); i++) { // For each pixel in strip...
