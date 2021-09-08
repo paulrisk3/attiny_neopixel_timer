@@ -1,17 +1,16 @@
 #include <Adafruit_NeoPixel.h>
 
-#define BUTTON_PIN   PCINT1 // Digital IO pin to a pull-up resistor, executes on high-low transition
-#define INT_PIN PB1
+//#define BUTTON_PIN   PCINT1 // Digital IO pin to a pull-up resistor, executes on high-low transition
+//#define INT_PIN PB1
 #define PIXEL_PIN    3  // Digital IO pin connected to the NeoPixels.
 #define PIXEL_COUNT 12  // Number of NeoPixels
 
-const double maxColorValue = 100; // value between 0-255. Higher is brighter.
+const int maxColorValue = 48; // value between 0-255. Higher is brighter.
+const long millisPerHour = 60000; // 3,600,000 milliseconds in an hour.
 
 boolean oldState = HIGH;
-unsigned long timer = 8 * 60 * 60 * 1000; // timer is in milliseconds. default value is 8 hours.
+long timer = 300000; // timer is in milliseconds. default value is 8 hours.
 unsigned long startingMillis;
-unsigned long currentMillis;
-unsigned long remainingTime;
 
 Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -29,13 +28,16 @@ void setup() {
 }
 
 void loop () {
-  currentMillis = millis();
-  remainingTime = timer - (currentMillis - startingMillis);
+  unsigned long currentMillis = millis();
+  long spentTime = (long) currentMillis - (long) startingMillis;
+  long remainingTime = timer - spentTime;
 
-  if (remainingTime < 1 ) {
-    greenChase();
+  if (remainingTime > 0) {
+    setLights(remainingTime);
+//    colorWipe(strip.Color(maxColorValue, 0, 0), 50);
   } else {
-    setLights();
+    greenChase();
+//    colorWipe(strip.Color(0, maxColorValue, 0), 50);
   }
 }
 
@@ -48,19 +50,20 @@ void loop () {
 //  }
 //}
 
-void setLights() {
+void setLights(long remainingTime) {
   strip.clear();
   
   // set one red LED for each hour
-  int numReds = remainingTime / 3600000;
+  int numReds = remainingTime / millisPerHour;
   for (int i=0; i<numReds; i++) {
     strip.setPixelColor(i, maxColorValue, 0, 0);
   }
 
   // set the dim LED
-  double remainder = remainingTime % 3600000;
-  double brightnessRatio = remainder / 3600000;
-  strip.setPixelColor(numReds, maxColorValue * brightnessRatio, 0, 0); //if numReds == PIXEL_COUNT, this will cause an error. This shouldn't happen, though, because increaseTimer rolls over.
+  double remainder = remainingTime % millisPerHour;
+  double brightness = remainder / millisPerHour;
+  strip.setPixelColor(numReds, maxColorValue * brightness, 0, 0); //if numReds == PIXEL_COUNT, this will cause an error. This shouldn't happen, though, because increaseTimer rolls over.
+//  strip.setPixelColor(numReds, maxColorValue * .33, 0, 0);
 
   strip.show();
 }
